@@ -54,10 +54,9 @@
 
 #include "u8g2.h"
 
+#include <Arduino.h>
 class U8G2
-#ifdef ARDUINO
-: public Print
-#endif
+  : public Print
 {
   protected:
     u8g2_t u8g2;
