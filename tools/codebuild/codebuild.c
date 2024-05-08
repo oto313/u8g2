@@ -544,6 +544,25 @@ struct controller controller_list[] =
     }
   },
 
+  
+    {
+    "ssd1312", 	16, 	4, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_001", "", COM_4WSPI|COM_3WSPI|COM_6800|COM_8080|COM_8080,
+    "", /* is_generate_u8g2_class= */ 1,
+    {
+      { "128x32" },
+      { NULL }
+    }
+  },
+  {
+    "ssd1312", 	16, 	4, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_ssd13xx_fast_i2c", "i2c", COM_I2C,
+    "", /* is_generate_u8g2_class= */ 1,
+    {
+      { "128x32" },
+      { NULL }
+    }
+  },  
+
+  
   /* https://github.com/olikraus/u8g2/issues/919 */
   {
     "ssd1316", 	16, 	4, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_001", "", COM_4WSPI|COM_6800|COM_8080,
@@ -723,6 +742,7 @@ struct controller controller_list[] =
     {
       { "ea_w128128" },
       { "midas_128x128" },
+      { "zjy_128x128" },  /* issue 2407 */
       { "ws_128x128" },
       { NULL }
     }
@@ -1008,6 +1028,14 @@ struct controller controller_list[] =
     "No HW flip", /* is_generate_u8g2_class= */ 1,
     {
       { "96x65" },
+      { NULL }
+    }
+  },
+  {
+    "pcf8812", 		13, 	8, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_001", "", COM_4WSPI|COM_3WSPI,
+    "No HW flip", /* is_generate_u8g2_class= */ 1,
+    {
+      { "101x64" },
       { NULL }
     }
   },
@@ -1519,6 +1547,23 @@ struct controller controller_list[] =
     }
   },
 
+  {
+    "st7567", 		12, 	9, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_001", "", COM_4WSPI|COM_3WSPI|COM_6800|COM_8080,
+    "", /* is_generate_u8g2_class= */ 1,
+    {
+      { "96x65" },
+      { NULL }
+    }
+  },
+  {
+    "st7567", 		12, 	9, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_ssd13xx_fast_i2c", "i2c", COM_I2C,
+    "", /* is_generate_u8g2_class= */ 1,
+    {
+      { "96x65" },
+      { NULL }
+    }
+  },
+  
   {
     "st7567", 		16, 	4, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_001", "", COM_4WSPI|COM_3WSPI|COM_6800|COM_8080,
     "", /* is_generate_u8g2_class= */ 1,
@@ -2225,6 +2270,16 @@ struct controller controller_list[] =
     }
   },
   
+  { /* cad001 or cad011: this controller doesn't contain two byte commands, argument is not required */
+    "s1d15300", 	13, 	4, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_011", "", COM_4WSPI|COM_6800|COM_8080,
+    "", /* is_generate_u8g2_class= */ 1,
+    {
+      { "97x32" }, 
+      { "100x32" }, 
+      { "100x32i" }, // inverted CS line
+      { NULL }
+    }
+  },
   
   {
     "s1d15e06", 	20, 	13, 	"u8g2_ll_hvline_vertical_top_lsb", "u8x8_cad_011", "", COM_4WSPI|COM_6800|COM_8080,

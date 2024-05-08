@@ -1,10 +1,12 @@
 /*
 
-  MUIInput3BtnWithU8g2.ino
-  
-  MUI: https://github.com/olikraus/u8g2/wiki/muimanual
-  Menu with three buttons. Internal U8g2 button control.
+  MUIInput1BtnBounce2.ino
 
+  MUI: https://github.com/olikraus/u8g2/wiki/muimanual
+  U8g2 Menu (MUI) with Bounce2 Library (https://github.com/thomasfredericks/Bounce2).
+  
+  MUI with only one button (will use long / short press method with Bounce2)
+  
   Universal 8bit Graphics Library (https://github.com/olikraus/u8g2/)
 
   Copyright (c) 2022, olikraus@gmail.com
@@ -39,13 +41,12 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 #include <MUIU8g2.h>
+#include <Bounce2.h>
 
-#ifdef U8X8_HAVE_HW_SPI
-#include <SPI.h>
-#endif
-#ifdef U8X8_HAVE_HW_I2C
-#include <Wire.h>
-#endif
+// One Button example: To which pin is the buttons connected?
+#define SELECT_PIN 6
+
+
 
 // Please UNCOMMENT one of the contructor lines below
 // U8g2 Contructor List (Picture Loop Page Buffer)
@@ -379,8 +380,12 @@
 
 // End of constructor list
 
-
+// U8g2 User Interface
 MUIU8G2 mui;
+
+// Define button objects
+Bounce2::Button selectBtn = Bounce2::Button();
+Bounce2::Button nextBtn = Bounce2::Button();
 
 /*
   global variables which form the communication gateway between the user interface and the rest of the code
@@ -445,6 +450,7 @@ muif_t muif_list[] = {
   MUIF_RO("GP",mui_u8g2_goto_data),  
   MUIF_BUTTON("GC", mui_u8g2_goto_form_w1_pi),
 
+  /* this example will use three buttons, so use "mse" functions here */
   MUIF_U8G2_U8_MIN_MAX("NV", &num_value, 0, 99, mui_u8g2_u8_min_max_wm_mse_pi),
   MUIF_U8G2_U8_MIN_MAX_STEP("NB", &bar_value, 0, 16, 1, MUI_MMS_2X_BAR, mui_u8g2_u8_bar_wm_mse_pf),
   MUIF_U8G2_U16_LIST("NA", &animal_idx, NULL, animal_name_list_get_str, animal_name_list_get_cnt, mui_u8g2_u16_list_line_wa_mse_pi),
@@ -453,7 +459,8 @@ muif_t muif_list[] = {
   MUIF_RO("SH", show_my_data), 
 
   /* a button for the menu... */
-  MUIF_BUTTON("GO", mui_u8g2_btn_goto_wm_fi)  
+  //MUIF_BUTTON("GO", mui_u8g2_btn_goto_wm_fi)  
+  MUIF_EXECUTE_ON_SELECT_BUTTON("GO", mui_u8g2_btn_goto_wm_fi)  
 };
 
 
@@ -461,7 +468,7 @@ fds_t fds_data[] =
 
 MUI_FORM(1)
 MUI_STYLE(1)
-MUI_LABEL(5, 8, "3 Btn Input with U8g2")
+MUI_LABEL(5, 8, "2 Btn Bounce2 Lib")
 MUI_STYLE(0)
 MUI_XY("HR", 0,11)
 MUI_DATA("GP", 
@@ -476,11 +483,11 @@ MUI_LABEL(5, 8, "Enter Data")
 MUI_XY("HR", 0,11)
 MUI_STYLE(0)
 MUI_LABEL(5,23, "Num:")
-MUI_LABEL(5,35, "Bar:")
-MUI_LABEL(5,47, "Animal:")
+MUI_LABEL(5,36, "Bar:")
+MUI_LABEL(5,49, "Animal:")
 MUI_XY("NV", 50, 23)
-MUI_XY("NB", 50, 35)
-MUI_XY("NA", 50, 47)
+MUI_XY("NB", 50, 36)
+MUI_XYA("NA", 50, 49, 44)
 MUI_XYAT("GO", 114, 60, 1, " Ok ") 
 
 MUI_FORM(12)
@@ -493,34 +500,37 @@ MUI_XYAT("GO", 114, 60, 1, " Ok ")
 
 ;
 
+// global variables for menu redraw and input event handling
+uint8_t is_redraw = 1;
+
 
 void setup(void) {
-  // U8g2 SH1106 Proto-Shield
-  //u8g2.begin(/* menu_select_pin= */ 2, /* menu_next_pin= */ 4, /* menu_prev_pin= */ 7, /* menu_up_pin= */ 6, /* menu_down_pin= */ 5, /* menu_home_pin= */ 3);
-
-  // U8g2 SH1106 MUI Test Shield
-  u8g2.begin(/* menu_select_pin= */ 6, /* menu_next_pin= */ 7, /* menu_prev_pin= */ 5, /* menu_up_pin= */ U8X8_PIN_NONE, /* menu_down_pin= */ U8X8_PIN_NONE, /* menu_home_pin= */ U8X8_PIN_NONE);
-
-  // DOGS102 Shield (http://shieldlist.org/controlconnection/dogs102)
-  //u8g2.begin(/* menu_select_pin= */ 5, /* menu_next_pin= */ 4, /* menu_prev_pin= */ 2, /* menu_up_pin= */ U8X8_PIN_NONE, /* menu_down_pin= */ U8X8_PIN_NONE, /* menu_home_pin= */ 3);
+  selectBtn.attach( SELECT_PIN, INPUT_PULLUP ); 
+  selectBtn.interval(5); // debounce interval in milliseconds
+  selectBtn.setPressedState(LOW);  // Indicate which state corresponds to a button press
   
-  // DOGM128 Shield (http://shieldlist.org/schmelle2/dogm128) + DOGXL160 Shield
-  //u8g2.begin(/* menu_select_pin= */ 2, /* menu_next_pin= */ 3, /* menu_prev_pin= */ 7, /* menu_up_pin= */ U8X8_PIN_NONE, /* menu_down_pin= */ U8X8_PIN_NONE, /* menu_home_pin= */ 8);
-  
-  // MKR Zero Test Board
-  // u8g2.begin(/*Select=*/ 0, /*Right/Next=*/ 1, /*Left/Prev=*/ 2, /*Up=*/ 4, /*Down=*/ 3, /*Home/Cancel=*/ A6); 
-
-  // Arduboy
-  //u8g2.begin(/*Select=*/ A0, /*Right/Next=*/ 5, /*Left/Prev=*/ 9, /*Up=*/ 8, /*Down=*/ 10, /*Home/Cancel=*/ A1); // Arduboy DevKit
-  //u8g2.begin(/*Select=*/ 7, /*Right/Next=*/ A1, /*Left/Prev=*/ A2, /*Up=*/ A0, /*Down=*/ A3, /*Home/Cancel=*/ 8); // Arduboy 10 (Production)
-  
-  
+  u8g2.begin();
   mui.begin(u8g2, fds_data, muif_list, sizeof(muif_list)/sizeof(muif_t));
   mui.gotoForm(/* form_id= */ 1, /* initial_cursor_position= */ 0);
 }
 
+void check_events(void) {
+  selectBtn.update();
+  nextBtn.update();
+}
 
-uint8_t is_redraw = 1;
+void handle_events(void) {
+  // 0 = not pushed, 1 = pushed  
+  if ( selectBtn.released() ) {
+    if ( selectBtn.previousDuration() < 200 )
+      mui.sendSelect();  // short button press
+    else
+      mui.nextField();     // long button press
+    is_redraw = 1;
+  } 
+}
+
+
 
 void loop(void) {
 
@@ -531,27 +541,15 @@ void loop(void) {
     if ( is_redraw ) {
       u8g2.firstPage();
       do {
+          check_events(); // check for button press with bounce2 library
           mui.draw();
+          check_events(); // check for button press with bounce2 library
       } while( u8g2.nextPage() );
       is_redraw = 0;                    /* clear the redraw flag */
     }
     
-    /* handle events */
-    switch(u8g2.getMenuEvent()) {
-      case U8X8_MSG_GPIO_MENU_SELECT:
-        mui.sendSelect();
-        is_redraw = 1;
-        break;
-      case U8X8_MSG_GPIO_MENU_NEXT:
-        mui.nextField();
-        is_redraw = 1;
-        break;
-      case U8X8_MSG_GPIO_MENU_PREV:
-        mui.prevField();
-        is_redraw = 1;
-        break;
-    }
-    
+    check_events(); // check for button press with bounce2 library
+    handle_events();  // process events from bounce2 library
       
   } else {
       /* the menu should never become inactive, but if so, then restart the menu system */
